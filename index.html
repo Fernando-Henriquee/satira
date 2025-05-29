@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sátira Política: Lula na Praia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff; /* Light blue background */
+        }
+        .speech-bubble {
+            position: relative;
+            background: #ffffff;
+            border-radius: .4em;
+            padding: 1em;
+            border: 2px solid #cbd5e1; /* slate-300 */
+        }
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border: 20px solid transparent;
+            border-top-color: #ffffff;
+            border-bottom: 0;
+            border-left: 0;
+            margin-left: -10px;
+            margin-bottom: -20px;
+        }
+        .loader {
+            border: 8px solid #f3f3f3; /* Light grey */
+            border-top: 8px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-sky-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-6 md:p-8 rounded-xl shadow-2xl w-full max-w-2xl text-center">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-sky-700">Sátira Tropical: Lula na Praia</h1>
+            <p class="text-gray-600 mt-2">Uma representação artística baseada na sua descrição.</p>
+        </header>
+
+        <div id="imageContainer" class="mb-6 bg-gray-100 rounded-lg min-h-[300px] flex items-center justify-center p-4">
+            <div id="loader" class="loader"></div>
+            <img id="generatedImage" src="#" alt="Imagem Gerada" class="hidden max-w-full max-h-[500px] rounded-lg shadow-md mx-auto">
+            <p id="errorMessage" class="hidden text-red-500">Não foi possível gerar a imagem. Tente novamente.</p>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-sky-600 mb-3">Texto da Sátira:</h2>
+            <div class="speech-bubble mx-auto max-w-md">
+                <p id="satireText" class="text-gray-700 text-sm md:text-base italic"></p>
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h3 class="text-md font-semibold text-gray-700 mb-2">Prompt Utilizado para Geração:</h3>
+            <p id="promptDisplay" class="text-xs text-gray-500 text-left"></p>
+        </div>
+
+        <button id="generateButton" class="mt-8 bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50 w-full sm:w-auto">
+            Gerar Imagem
+        </button>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const imageContainer = document.getElementById('imageContainer');
+        const generatedImage = document.getElementById('generatedImage');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('errorMessage');
+        const satireTextElement = document.getElementById('satireText');
+        const promptDisplayElement = document.getElementById('promptDisplay');
+        const generateButton = document.getElementById('generateButton');
+
+        const satireQuote = "Arthur meu companheiro para de fingir que não é PT,! porra, falar que é centro esquerda? Isso é coisa de petista que gosta de levar no centro companheiro?... no meu mandato não vai sobrar nada pro betinha, it's over, brutal, o SUS não funciona.";
+        
+        // --- Display initial text ---
+        satireTextElement.textContent = satireQuote;
+
+        const imagePrompt = `Political cartoon, satirical style: Former Brazilian president Lula is relaxed on a tropical beach, sitting on a red and white striped beach chair. He's wearing red 'samba-canção' (loose-fitting shorts) and dark sunglasses, happily sipping coconut water from a green coconut with a straw. The background shows a bright blue sky, a shining sun, and a few palm trees. A speech bubble above Lula's head contains the exact Portuguese text: "${satireQuote}". The scene should be vibrant and tropical, with a caricature art style.`;
+        promptDisplayElement.textContent = imagePrompt;
+        
+        async function generateImage() {
+            loader.classList.remove('hidden');
+            generatedImage.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            generateButton.disabled = true;
+            generateButton.textContent = 'Gerando...';
+
+
+            const payload = { 
+                instances: [{ prompt: imagePrompt }],
+                parameters: { "sampleCount": 1 }
+            };
+            const apiKey = ""; // API key will be injected by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Error from API:', errorData);
+                    throw new Error(`API Error: ${errorData.error?.message || response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    generatedImage.src = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    generatedImage.classList.remove('hidden');
+                } else {
+                    console.error('Unexpected response structure or no image data:', result);
+                    throw new Error('Não foi possível obter os dados da imagem.');
+                }
+            } catch (error) {
+                console.error('Error generating image:', error);
+                errorMessage.textContent = `Erro ao gerar imagem: ${error.message}. Verifique o console para mais detalhes.`;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loader.classList.add('hidden');
+                generateButton.disabled = false;
+                generateButton.textContent = 'Gerar Imagem Novamente';
+            }
+        }
+
+        // Automatically trigger generation on load or add a button
+        // For this example, let's use a button.
+        generateButton.addEventListener('click', generateImage);
+        
+        // Optional: Generate on load
+        // window.addEventListener('load', generateImage);
+
+    </script>
+</body>
+</html>
